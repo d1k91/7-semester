@@ -28,7 +28,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Инициализация UI
         etFullName = findViewById(R.id.etFullName);
         rgGender = findViewById(R.id.rgGender);
         spinnerCourse = findViewById(R.id.spinnerCourse);
@@ -39,27 +38,23 @@ public class MainActivity extends AppCompatActivity {
         tvResult = findViewById(R.id.tvResult);
         ivZodiac = findViewById(R.id.ivZodiac);
 
-        // Настройка Spinner
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_item,
                 new String[]{"1 курс", "2 курс", "3 курс", "4 курс"});
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerCourse.setAdapter(adapter);
 
-        // Настройка диапазона календаря (1900 - сегодня)
         Calendar minDate = Calendar.getInstance();
-        minDate.set(1900, 0, 1);
+        minDate.set(1970, 0, 1);
         calendarView.setMinDate(minDate.getTimeInMillis());
 
         Calendar maxDate = Calendar.getInstance();
         calendarView.setMaxDate(maxDate.getTimeInMillis());
 
-        // Инициализация выбранной даты по умолчанию
         selectedMillis = calendarView.getDate();
         selectedDate = new SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
                 .format(new Date(selectedMillis));
 
-        // Обновление даты при изменении пользователем
         calendarView.setOnDateChangeListener((view, year, month, dayOfMonth) -> {
             Calendar cal = Calendar.getInstance();
             cal.set(year, month, dayOfMonth);
@@ -67,7 +62,6 @@ public class MainActivity extends AppCompatActivity {
             selectedDate = dayOfMonth + "." + (month + 1) + "." + year;
         });
 
-        // Отслеживание SeekBar
         seekBarDifficulty.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -81,7 +75,6 @@ public class MainActivity extends AppCompatActivity {
             public void onStopTrackingTouch(SeekBar seekBar) { }
         });
 
-        // Кнопка регистрации
         btnSubmit.setOnClickListener(v -> {
             String fullName = etFullName.getText().toString();
 
@@ -92,7 +85,6 @@ public class MainActivity extends AppCompatActivity {
             String course = spinnerCourse.getSelectedItem().toString();
             int difficulty = seekBarDifficulty.getProgress();
 
-            // Вычисление знака по выбранной дате
             String zodiac = ZodiacUtils.getZodiac(selectedMillis);
             int zodiacRes = ZodiacUtils.getZodiacImage(zodiac);
             ivZodiac.setImageResource(zodiacRes);
