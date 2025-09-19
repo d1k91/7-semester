@@ -24,7 +24,7 @@ def main():
             q = int((p-1)/2)
             g = int(input("Введите g: "))
             while modular_exponentiation(g, q, p) == 1:
-                g = int(input("p^q mod p = 1\nВведите другое g: "))
+                g = int(input("p^q mod p = 1!\nВведите другое g: "))
             x_a = int(input("Введите Xa: "))
             x_b = int(input("Введите Xb: "))
             
@@ -37,8 +37,8 @@ def main():
             print(f'q = {q}')
             g = random.randint(2,p-1)
             while modular_exponentiation(g, q, p) == 1 and g < p-1:
-                print(f'g = {g}')
                 g = random.randint(2,p-1)
+            print(f'g = {g}')
             x_a = random.randint(1,p)
             print(f'x_a = {x_a}')
             x_b = random.randint(1,p)
