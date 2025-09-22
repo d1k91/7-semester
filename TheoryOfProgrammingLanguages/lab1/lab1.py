@@ -271,9 +271,9 @@ class Parser:
         all_x, all_y = [], []
         for x, y, label, ntype in nodes_info:
             if ntype == 'ε' or ntype == 'Value':
-                facecolor = 'cornflowerblue'
+                facecolor = 'mediumpurple'
             else:
-                facecolor = 'mediumslateblue'
+                facecolor = 'lightblue'
 
             circle = plt.Circle((x, y), node_radius, color=facecolor, ec='black', lw=1.3, zorder=2)
             ax.add_patch(circle)
