@@ -270,8 +270,12 @@ class Parser:
 
         all_x, all_y = [], []
         for x, y, label, ntype in nodes_info:
-            if ntype == 'ε' or ntype == 'Value':
+            if ntype == 'ε' :
+                facecolor = 'lightgray'
+            elif ntype == 'Value':
                 facecolor = 'mediumpurple'
+            elif ntype == 'Operator':
+                facecolor = 'lightcoral'
             else:
                 facecolor = 'lightblue'
 
