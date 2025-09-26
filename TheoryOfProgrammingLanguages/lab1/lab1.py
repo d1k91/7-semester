@@ -159,10 +159,14 @@ class Parser:
         node = Node('F')
 
         if self.current_token and self.current_token.type == 'LBracket':
+            lbracket = Node('Bracket', '(')
+            node.children.append(lbracket)
             self.match('LBracket')
             node.children.append(self.parseS())
             if not self.match('RBracket'):
                 raise Exception('Ожидалась )')
+            rbracket = Node('Bracket', ')')
+            node.children.append(rbracket)
         
         elif self.current_token and self.current_token.type == 'Number':
             node.value = self.current_token.value
@@ -236,6 +240,8 @@ class Parser:
                 label = 'ε'
             elif n.type == 'Operator' and n.value:
                 label = n.value
+            elif n.type == 'Bracket' and n.value:
+                label = n.value
             else:
                 label = n.type
 
@@ -276,6 +282,8 @@ class Parser:
                 facecolor = 'mediumpurple'
             elif ntype == 'Operator':
                 facecolor = 'lightcoral'
+            elif ntype == 'Bracket':
+                facecolor = 'lightgreen'
             else:
                 facecolor = 'lightblue'
 
