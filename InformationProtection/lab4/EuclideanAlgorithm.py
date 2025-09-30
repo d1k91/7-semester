@@ -5,6 +5,7 @@ def Euclidean_algorithm(a,b):
     while V[0] != 0:
         q = U[0] // V[0]
         T = [U[0] % V[0], U[1] - q*V[1], U[2] - q*V[2]]
+        print(f'q = {q}\nU {U}\nV {V}\nT {T}\n')
         U = V
         V = T
     return tuple(U[1:])

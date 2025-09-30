@@ -45,12 +45,16 @@ def _hex_to_numbers(hex_hash):
 
 def ShamirCipher(m, p, Ca, Cb):
     x1 = modular_exponentiation(m, Ca, p)
+    print(f'x1 = {m}^{Ca}mod{p} = {x1}')
     x2 = modular_exponentiation(x1, Cb, p)
+    print(f'x2 = {x1}^{Cb}mod{p} = {x2}')
     return x2
 
 def ShamirDecipher(m, p, Da, Db):
     x3 = modular_exponentiation(m, Da, p)
+    print(f'x3 = {m}^{Da}mod{p} = {x3}')
     x4 = modular_exponentiation(x3, Db, p)
+    print(f'x4 = {x3}^{Db}mod{p} = {x4}')
     return x4
 
 def main():
@@ -59,8 +63,9 @@ def main():
     
     match key:
         case "1":
-            m = input("Введите сообщение: ")
-            hashed_numbers = hash_text_md5_split(m)
+            m = int(input("Введите сообщение: "))
+            hashed_numbers = [m]
+            # hashed_numbers = hash_text_md5_split(m)
 
             p = int(input("Введите p: "))
             while not isPrimeFerma(p):
@@ -98,33 +103,42 @@ def main():
                 Cb = random.randint(2, p)
             print(f'Cb = {Cb}')
 
+    print("\nВычисление Da")
     _, Da = Euclidean_algorithm(p-1, Ca)
     if Da < 0:
+        print(f'Da < 0 ({Da} < 0) => Da += {p-1} = {Da+p-1}')
         Da += p-1
     print(f'Da = {Da}')
+    print("\nВычисление Db")
     _, Db = Euclidean_algorithm(p-1, Cb)
     if Db < 0:
+        print(f'Db < 0 ({Db} < 0) => Db += {p-1} = {Db+p-1}')
         Db += p-1
     print(f'Db = {Db}')          
     
-    mode = input('Шифрование (e) или расшифровка (d)? ')
 
-    ciphered_res = []
-    for i, num in enumerate(hashed_numbers):
-        result = ShamirCipher(num, p, Ca, Cb)
-        ciphered_res.append(result)
+    while true:
 
-    print(f"\nЗашифрованное сообщение (Отдельные числа):\n{hashed_numbers} -> {ciphered_res}\n")
-    results_individual = []
-    for i, num in enumerate(ciphered_res):
-        result = ShamirDecipher(num, p, Da, Db)
-        results_individual.append(result)
-    print(f"Расшифрованное сообщение (Отдельные числа):\n{ciphered_res} -> {results_individual}\n")
+        ciphered_res = []
+        for i, num in enumerate(hashed_numbers):
+            result = ShamirCipher(num, p, Ca, Cb)
+            ciphered_res.append(result)
 
-    if hashed_numbers == results_individual:
-        print(f'Расшифровано успешно!\n{hashed_numbers} = {results_individual}')
-    else:
-        print(f'Расшифровка не удалась!\n{hashed_numbers} != {results_individual}')
+        # print(f"\nЗашифрованное сообщение (Отдельные числа):\n{hashed_numbers} -> {ciphered_res}\n")
+        results_individual = []
+        for i, num in enumerate(ciphered_res):
+            result = ShamirDecipher(num, p, Da, Db)
+            results_individual.append(result)
+        # print(f"Расшифрованное сообщение (Отдельные числа):\n{ciphered_res} -> {results_individual}\n")
+
+        if hashed_numbers == results_individual:
+            print(f'Расшифровано успешно!\n{hashed_numbers} = {results_individual}')
+        else:
+            print(f'Расшифровка не удалась!\n{hashed_numbers} != {results_individual}')
+
+        q = input(":q to quit   ")
+        if q == ':q':
+            quit()
 
 
 if __name__ == '__main__':
