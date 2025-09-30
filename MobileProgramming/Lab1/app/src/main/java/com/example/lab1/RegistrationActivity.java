@@ -1,0 +1,101 @@
+package com.example.lab1;
+
+import android.os.Bundle;
+import android.widget.*;
+import androidx.appcompat.app.AppCompatActivity;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
+
+public class RegistrationActivity extends AppCompatActivity {
+    EditText etFullName;
+    RadioGroup rgGender;
+    Spinner spinnerCourse;
+    SeekBar seekBarDifficulty;
+    TextView tvDifficultyValue;
+    CalendarView calendarView;
+    Button btnSubmit;
+    TextView tvResult;
+    ImageView ivZodiac;
+
+    String selectedDate;
+    Button btnBack;
+    long selectedMillis;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_registration);
+
+        etFullName = findViewById(R.id.etFullName);
+        rgGender = findViewById(R.id.rgGender);
+        spinnerCourse = findViewById(R.id.spinnerCourse);
+        seekBarDifficulty = findViewById(R.id.seekBarDifficulty);
+        tvDifficultyValue = findViewById(R.id.tvDifficultyValue);
+        calendarView = findViewById(R.id.calendarView);
+        btnSubmit = findViewById(R.id.btnSubmit);
+        tvResult = findViewById(R.id.tvResult);
+        ivZodiac = findViewById(R.id.ivZodiac);
+        btnBack = findViewById(R.id.btnBack);
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item,
+                new String[]{"1 курс", "2 курс", "3 курс", "4 курс"});
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCourse.setAdapter(adapter);
+
+        Calendar minDate = Calendar.getInstance();
+        minDate.set(1970, 0, 1);
+        calendarView.setMinDate(minDate.getTimeInMillis());
+
+        Calendar maxDate = Calendar.getInstance();
+        calendarView.setMaxDate(maxDate.getTimeInMillis());
+
+        selectedMillis = calendarView.getDate();
+        selectedDate = new SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+                .format(new Date(selectedMillis));
+
+        calendarView.setOnDateChangeListener((view, year, month, dayOfMonth) -> {
+            Calendar cal = Calendar.getInstance();
+            cal.set(year, month, dayOfMonth);
+            selectedMillis = cal.getTimeInMillis();
+            selectedDate = dayOfMonth + "." + (month + 1) + "." + year;
+        });
+
+        seekBarDifficulty.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                tvDifficultyValue.setText(String.valueOf(progress));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) { }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) { }
+        });
+
+        btnSubmit.setOnClickListener(v -> {
+            String fullName = etFullName.getText().toString();
+
+            int selectedId = rgGender.getCheckedRadioButtonId();
+            RadioButton rb = findViewById(selectedId);
+            String gender = rb != null ? rb.getText().toString() : "Не выбрано";
+
+            String course = spinnerCourse.getSelectedItem().toString();
+            int difficulty = seekBarDifficulty.getProgress();
+
+            String zodiac = ZodiacUtils.getZodiac(selectedMillis);
+            int zodiacRes = ZodiacUtils.getZodiacImage(zodiac);
+            ivZodiac.setImageResource(zodiacRes);
+
+            User user = new User(fullName, gender, course, difficulty, selectedDate, zodiac);
+
+            tvResult.setText(user.toString());
+        });
+
+        btnBack.setOnClickListener(v -> finish());
+    }
+}
