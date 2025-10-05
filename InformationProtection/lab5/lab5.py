@@ -1,7 +1,24 @@
 import os
 import random
 from primeFerma import isPrimeFerma, modular_exponentiation
-from EuclideanAlgorithm import Euclidean_algorithm, gcd
+
+def encrypt_number(m, p, g, y):
+    m_enc = m % p
+    if m_enc == 0:
+        m_enc = 1
+        
+    k = random.randint(2, p-2)
+    a = modular_exponentiation(g, k, p)
+    b = (modular_exponentiation(y, k, p) * m_enc) % p
+    print(f'k = {k}\na = {a}\nb = {b}')
+    return (a, b), k
+
+def decrypt_number(ciphertext, p, Db):
+    a, b = ciphertext
+    power = p - 1 - Db
+    m = (b * modular_exponentiation(a, power, p)) % p
+    print(f'm = {b} * {a} ^ ({p} - 1 - {Db}) mod {p} = {m}')
+    return m
 
 def find_primitive_root(p):
     if p == 2:
@@ -73,6 +90,13 @@ def main():
     key = input("1. Ввод с клавиатуры\n2. Генерация внутри функции\n")
     
     if key == "1":
+        m_input = input("Введите число m для шифрования: ")
+        try:
+            m_number = int(m_input)
+        except ValueError:
+            print("Ошибка: введите целое число!")
+            return
+
         p = int(input("Введите p (простое число): "))
         while not isPrimeFerma(p):
             p = int(input("P должно быть простым!\nВведите другое p: "))
@@ -97,6 +121,9 @@ def main():
         Cb = random.randint(2, p-2)
         print(f'Cb (секретный ключ Боба) = {Cb}')
 
+        m_number = random.randint(1, 1000)
+        print(f'Сгенерированное число m = {m_number}')
+
     y = modular_exponentiation(g, Cb, p)
     print(f'Открытый ключ Боба (y) = {y}')
 
@@ -120,6 +147,30 @@ def main():
                 continue
             decrypt_file(infile, outfile, p, Cb)
             print("Файл расшифрован.")
+
+        elif mode == 'f':
+            if key == "2":
+                m_input = input(f"Введите число m для шифрования (или Enter для использования {m_number}): ")
+                if m_input.strip():
+                    try:
+                        m_number = int(m_input)
+                    except ValueError:
+                        print("Ошибка: введите целое число!")
+                        continue
+            
+            print(f"Шифруем число: {m_number}")
+            ciphertext, k = encrypt_number(m_number, p, g, y)
+            print(f"Зашифрованное число: ({ciphertext[0]}, {ciphertext[1]})")
+            print(f"Использованный случайный k: {k}")
+            
+            decrypted = decrypt_number(ciphertext, p, Cb)
+            print(f"Проверка расшифровки: {decrypted}")
+            
+            if m_number % p == decrypted or (m_number % p == 0 and decrypted == 1):
+                print("✓ Расшифровка успешна!")
+            else:
+                print("✗ Ошибка расшифровки!")
+
 
 
 if __name__ == '__main__':
