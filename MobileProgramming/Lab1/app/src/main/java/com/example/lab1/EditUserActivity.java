@@ -1,13 +1,11 @@
 package com.example.lab1;
 
 import android.app.DatePickerDialog;
-import android.content.Intent;
 import android.os.Bundle;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.Spinner;
@@ -67,7 +65,6 @@ public class EditUserActivity extends AppCompatActivity {
 
         db = AppDatabase.getDatabase(this);
 
-        // Получение ID пользователя из Intent
         int userId = getIntent().getIntExtra("user_id", -1);
         user = db.appDao().getUserById(userId);
         if (user == null) {
@@ -76,7 +73,6 @@ public class EditUserActivity extends AppCompatActivity {
             return;
         }
 
-        // Инициализация полей
         etFullName.setText(user.fullName);
         if ("Мужской".equals(user.gender)) {
             rgGender.check(R.id.rbMale);

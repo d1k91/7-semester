@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.view.MotionEvent;
-import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -96,7 +95,6 @@ public class GameActivity extends AppCompatActivity {
         btnAuthors = findViewById(R.id.btnAuthors);
         btnRules = findViewById(R.id.btnRules);
 
-        // Загрузка настроек из UserEntity
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         int userId = prefs.getInt("current_user_id", -1);
         if (userId == -1) {
@@ -166,7 +164,6 @@ public class GameActivity extends AppCompatActivity {
         handler.removeCallbacksAndMessages(null);
         clearAllViews();
 
-        // Сохранение рекорда
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         int userId = prefs.getInt("current_user_id", -1);
         if (userId != -1) {
