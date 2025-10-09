@@ -9,14 +9,20 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.view.MotionEvent;
-import androidx.appcompat.app.AlertDialog;
+import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import android.view.animation.AccelerateDecelerateInterpolator;
+
+import com.example.lab1.data.AppDatabase;
+import com.example.lab1.data.ScoreEntity;
+import com.example.lab1.data.UserEntity;
 
 import java.util.ArrayList;
 import java.util.Random;
@@ -90,12 +96,27 @@ public class GameActivity extends AppCompatActivity {
         btnAuthors = findViewById(R.id.btnAuthors);
         btnRules = findViewById(R.id.btnRules);
 
+        // Загрузка настроек из UserEntity
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        speed = prefs.getInt("speed", 5);
-        maxCockroaches = prefs.getInt("max_cockroaches", 10);
-        bonusInterval = prefs.getInt("bonus_interval", 30);
-        roundDuration = prefs.getInt("round_duration", 20);
+        int userId = prefs.getInt("current_user_id", -1);
+        if (userId == -1) {
+            Toast.makeText(this, "Пользователь не выбран", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
 
+        AppDatabase db = AppDatabase.getDatabase(this);
+        UserEntity user = db.appDao().getUserById(userId);
+        if (user == null) {
+            Toast.makeText(this, "Пользователь не найден", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
+        speed = user.speed;
+        maxCockroaches = user.maxCockroaches;
+        bonusInterval = user.bonusInterval;
+        roundDuration = user.roundDuration;
         timeLeft = roundDuration;
 
         btnBack.setOnClickListener(v -> finish());
@@ -144,6 +165,17 @@ public class GameActivity extends AppCompatActivity {
         isGameRunning = false;
         handler.removeCallbacksAndMessages(null);
         clearAllViews();
+
+        // Сохранение рекорда
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        int userId = prefs.getInt("current_user_id", -1);
+        if (userId != -1) {
+            AppDatabase db = AppDatabase.getDatabase(this);
+            ScoreEntity scoreEntity = new ScoreEntity(userId, score, speed, maxCockroaches, bonusInterval, roundDuration, System.currentTimeMillis());
+            db.appDao().insertScore(scoreEntity);
+        } else {
+            Toast.makeText(this, "Пользователь не выбран, рекорд не сохранён", Toast.LENGTH_SHORT).show();
+        }
 
         String message = "Ваши очки: " + score + "\n\n" +
                 "Параметры игры:\n" +
@@ -197,7 +229,6 @@ public class GameActivity extends AppCompatActivity {
             x = random.nextFloat() * (layoutWidth - 150);
             y = random.nextFloat() * (layoutHeight - 150);
             validPosition = true;
-
 
             for (ImageView existing : cockroaches) {
                 if (Math.abs(existing.getX() - x) < 150 && Math.abs(existing.getY() - y) < 150) {

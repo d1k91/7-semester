@@ -21,5 +21,8 @@
         <activity android:name=".AuthorsActivity" />
         <activity android:name=".RulesActivity" />
         <activity android:name=".GameActivity" />
+        <activity android:name=".UserSelectionActivity" />
+        <activity android:name=".RecordsActivity" />
+        <activity android:name=".EditUserActivity"/>
     </application>
 </manifest>

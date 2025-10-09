@@ -12,16 +12,16 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Button btnRegistration = findViewById(R.id.btnRegistration);
         Button btnSettings = findViewById(R.id.btnSettings);
         Button btnAuthors = findViewById(R.id.btnAuthors);
         Button btnRules = findViewById(R.id.btnRules);
         Button btnPlay = findViewById(R.id.btnPlay);
+        Button btnRecords = findViewById(R.id.btnRecords);
 
-        btnRegistration.setOnClickListener(v -> startActivity(new Intent(this, RegistrationActivity.class)));
+        btnRecords.setOnClickListener(v -> startActivity(new Intent(this, RecordsActivity.class)));
         btnSettings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
         btnAuthors.setOnClickListener(v -> startActivity(new Intent(this, AuthorsActivity.class)));
         btnRules.setOnClickListener(v -> startActivity(new Intent(this, RulesActivity.class)));
-        btnPlay.setOnClickListener(v -> startActivity(new Intent(this, GameActivity.class)));
+        btnPlay.setOnClickListener(v -> startActivity(new Intent(this, UserSelectionActivity.class)));
     }
 }

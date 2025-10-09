@@ -8,7 +8,7 @@
     <ImageView
         android:layout_width="50dp"
         android:layout_height="50dp"
-        android:src="@drawable/student_photo" /> <!-- Добавьте фото в drawable -->
+        android:src="@drawable/student_photo" />
 
     <TextView
         android:id="@+id/tvAuthorName"

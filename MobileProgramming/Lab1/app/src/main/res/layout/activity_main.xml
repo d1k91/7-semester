@@ -14,10 +14,17 @@
         android:textSize="24sp" />
 
     <Button
-        android:id="@+id/btnRegistration"
+        android:id="@+id/btnPlay"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Регистрация"
+        android:layout_marginBottom="16dp"
+        android:text="Играть" />
+
+    <Button
+        android:id="@+id/btnRecords"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Рекорды"
         android:layout_marginBottom="16dp"/>
 
     <Button
@@ -28,22 +35,17 @@
         android:layout_marginBottom="16dp"/>
 
     <Button
+        android:id="@+id/btnRules"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="Правила игры" />
+
+    <Button
         android:id="@+id/btnAuthors"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Список авторов"
         android:layout_marginBottom="16dp"/>
 
-    <Button
-        android:id="@+id/btnRules"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Правила игры"
-        android:layout_marginBottom="16dp"/>
-
-    <Button
-        android:id="@+id/btnPlay"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Играть"/>
 </LinearLayout>
