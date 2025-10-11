@@ -8,16 +8,18 @@ def encrypt_number(m, p, g, y):
         m_enc = 1
         
     k = random.randint(2, p-2)
+    print(f'k = {k}')
     a = modular_exponentiation(g, k, p)
+    print(f"a = g ^ k mod p = {g} ^ {k} mod {p} = {a}")
     b = (modular_exponentiation(y, k, p) * m_enc) % p
-    print(f'k = {k}\na = {a}\nb = {b}')
+    print(f"b = m * y ^ k mod p = {m}*{y} ^ {k} mod {p} = (({y} ^ {k} mod {p}) * {m}) mod {p} = {b}")
     return (a, b), k
 
 def decrypt_number(ciphertext, p, Db):
     a, b = ciphertext
     power = p - 1 - Db
     m = (b * modular_exponentiation(a, power, p)) % p
-    print(f'm = {b} * {a} ^ ({p} - 1 - {Db}) mod {p} = {m}')
+    print(f'm = b * a ^ (p - 1 - Db) mod p = (({a} ^ {p}-1-{Db} mod {p}) * {b}) mod {p} = {m}')
     return m
 
 def find_primitive_root(p):
@@ -51,6 +53,7 @@ def ElGamal_encrypt(data: bytes, p, g, y):
             m = 1
             
         k = random.randint(2, p-2)
+        print(f'k = {k}')
         a = modular_exponentiation(g, k, p)
         b = (modular_exponentiation(y, k, p) * m) % p
         encrypted.append((a, b))
@@ -128,7 +131,7 @@ def main():
     print(f'Открытый ключ Боба (y) = {y}')
 
     while True:
-        mode = input('Шифрование (e) или расшифровка (d)? ').lower()
+        mode = input('Шифрование файла (e) или расшифровка файла (d)? \n(f) - ручной ввод сообщения m     ').lower()
 
         if mode == 'e':
             infile = input("Введите имя входного файла: ")
@@ -161,7 +164,6 @@ def main():
             print(f"Шифруем число: {m_number}")
             ciphertext, k = encrypt_number(m_number, p, g, y)
             print(f"Зашифрованное число: ({ciphertext[0]}, {ciphertext[1]})")
-            print(f"Использованный случайный k: {k}")
             
             decrypted = decrypt_number(ciphertext, p, Cb)
             print(f"Проверка расшифровки: {decrypted}")
