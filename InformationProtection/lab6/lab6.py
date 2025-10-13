@@ -8,28 +8,47 @@ def RSA_with_sign(m, d, N, c, p, q, test = False):
     p_a = random.randint(2, max(p,q))
     while not isPrimeFerma(p_a):
         p_a = random.randint(2, max(p,q))
-    print(f'p_a = {p_a}')
 
     q_a = random.randint(2, max(p,q))
     while not isPrimeFerma(q_a) or p_a * q_a >= N:
         q_a = random.randint(2, max(p,q))
-    print(f'q_a = {q_a}')
 
     phi_a = (p_a-1)*(q_a-1)
-    print(f'ф_a = {phi_a}')
 
     d_a = random.randint(2, phi_a)
     while not gcd(phi_a, d_a) == 1:
         d_a = random.randint(2, power)
-    print(f"d_a = {d_a}")
     
     N_a = p_a * q_a
-    _, c_a = Euclidean_algorithm(phi_a, d_a, info=True)
-    if c_a < 0:
-        c_a += phi_a
+    while True:
+        _, c_a = Euclidean_algorithm(phi_a, d_a, info=False)
+        if c_a < 0:
+            c_a += phi_a
+
+        if N > c and N > c_a and N_a > c and N_a > c_a:
+            break
+
+        p_a = random.randint(2, max(p,q))
+        while not isPrimeFerma(p_a):
+            p_a = random.randint(2, max(p,q))
+        
+        q_a = random.randint(2, max(p,q))
+        while not isPrimeFerma(q_a) or p_a * q_a >= N:
+            q_a = random.randint(2, max(p,q))
+        
+        phi_a = (p_a-1)*(q_a-1)
+
+        d_a = random.randint(1, phi_a)
+        while not gcd(phi_a, d_a) == 1:
+            d_a = random.randint(1, power)
+
+        N_a = p_a*q_a
+
+    print(f'p_a = {p_a}')
+    print(f'q_a = {q_a}')
+    print(f'ф_a = {phi_a}')
+    print(f"d_a = {d_a}")
     print(f"c_a = {c_a}")
-
-
     e = modular_exponentiation(m, c_a, N_a)
     print(f"e = m^c_a mod N_a = {m}^{c_a} mod {N_a} = {e}")
     f = modular_exponentiation(e, d, N)
