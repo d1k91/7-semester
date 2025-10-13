@@ -3,6 +3,46 @@ import random
 from EuclideanAlgorithm import *
 import os
 
+def RSA_with_sign(m, d, N, c, p, q, test = False):
+    power = 10**2
+    p_a = random.randint(2, max(p,q))
+    while not isPrimeFerma(p_a):
+        p_a = random.randint(2, max(p,q))
+    print(f'p_a = {p_a}')
+
+    q_a = random.randint(2, max(p,q))
+    while not isPrimeFerma(q_a) or p_a * q_a >= N:
+        q_a = random.randint(2, max(p,q))
+    print(f'q_a = {q_a}')
+
+    phi_a = (p_a-1)*(q_a-1)
+    print(f'ф_a = {phi_a}')
+
+    d_a = random.randint(2, phi_a)
+    while not gcd(phi_a, d_a) == 1:
+        d_a = random.randint(2, power)
+    print(f"d_a = {d_a}")
+    
+    N_a = p_a * q_a
+    _, c_a = Euclidean_algorithm(phi_a, d_a, info=True)
+    if c_a < 0:
+        c_a += phi_a
+    print(f"c_a = {c_a}")
+
+
+    e = modular_exponentiation(m, c_a, N_a)
+    print(f"e = m^c_a mod N_a = {m}^{c_a} mod {N_a} = {e}")
+    f = modular_exponentiation(e, d, N)
+    print(f"f = e^d_b mod N_b = {e}^{d} mod {N} = {f}")
+    u = modular_exponentiation(f, c, N)
+    print(f"u = f^c_b mod N_b = {f}^{c} mod {N} = {u}")
+    w = modular_exponentiation(u, d_a, N_a)
+    print(f"w = u^d_a mod N_a = {u}^{d_a} mod {N_a} = {w}")
+
+    if test:
+        return w, (N_a, c_a, phi_a)
+    else:
+        return w
 
 def RSA(m, d, N, c):
     e = modular_exponentiation(m, d, N)
@@ -96,7 +136,7 @@ def main():
     print(f"c = {c}")
 
     while True:
-        mode = input('Шифрование файла (e), расшифровка файла (d), ручной ввод сообщения m (f): ')
+        mode = input('Шифрование файла (e), расшифровка файла (d), ручной ввод сообщения m (f), ручной ввод с подписью(s): ')
 
         if mode == "e":
             infile = input("Введите имя входного файла: ")
@@ -132,6 +172,40 @@ def main():
                 print("✓ Расшифровка успешна!")
             else:
                 print("✗ Ошибка расшифровки!")
+
+        elif mode == "s":
+            if key == "2":
+                m_input = input(f"Введите число m для шифрования: ")
+                if m_input.strip():
+                    try:
+                        m_number = int(m_input)
+                    except ValueError:
+                        print("Ошибка: введите целое число!")
+                        continue
             
+            
+            # res = []
+            # for i in range(100):
+            #     print(f"Шифруем число: {m_number}")
+            #     w, params = RSA_with_sign(m_number, d, N, c, p, q, test=True)
+            #     N_a, c_a, phi_a = params
+            #     if w == m_number:
+            #         # print("✓ Расшифровка успешна!")
+            #         res.append(('✓', {'N_a':N_a, 'c_a':c_a, 'ф_a':phi_a}, {'N_b':N, 'c_b':c, 'ф_b':phi}, True if (N_a > c_a and N_a > c and N > c_a and N > c) else False ))
+            #     else:
+            #         # print("✗ Ошибка расшифровки!")
+            #         res.append(('✗', {'N_a':N_a, 'c_a':c_a, 'ф_a':phi_a}, {'N_b':N, 'c_b':c, 'ф_b':phi}, True if (N_a > c_a and N_a > c and N > c_a and N > c) else False ))
+            
+            # for r in res:
+            #     print(r)
+
+            print(f"Шифруем число: {m_number}")
+            w = RSA_with_sign(m_number, d, N, c, p, q)
+            if w == m_number:
+                print("✓ Расшифровка успешна!")
+            else:
+                print("✗ Ошибка расшифровки!")
+
+# оба модуля больше обоих секретных ключей
 if __name__ == "__main__":
     main()
