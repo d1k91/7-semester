@@ -7,6 +7,7 @@ from vacancies v
 left join responces r  on v.vacancy_id = r.vacancy_id  
 group by v.vacancy_id
 having count(r.responce_id ) >= 2;
+
 -- вывести людей, ищущих работу, которые откликнулись на 2 и более вакансии, среднюю ожидаемую зп и количество откликов
 select 
 	js.name,
@@ -18,7 +19,7 @@ join vacancies v on r.vacancy_id = v.vacancy_id
 group by js.name
 having count(r.responce_id) >= 2;
 
--- вывести информацию о будущих собеседованиях, а так же информацию о потенциальном работнике, вакансии и компании
+-- вывести информацию о будущих собеседованиях, информацию о соискателе, вакансии и компании
 
 select 
 	js.name,
@@ -34,12 +35,12 @@ join employers e on v.employer_id = e.employer_id
 where i.interview_date > current_timestamp;
 
 
--- найти компании, у которых были успешные собеседования, и вывести информацию о соискателях
+-- найти компании, у которых были успешные собеседования, вывести количество собеседований, кол-во уникальных соискателей, и среднюю ЗП по вакансиям
 
 select
 	e.company_name as "Компании",
 	count(distinct i.interview_id) as "Успешных собеседований",
-	count(distinct js.seeker_id ) as "Уникальных соискателей",
+	count(distinct js.seeker_id ) as "Кол-во соискателей",
 	round(avg((v.salary_min + v.salary_max )/2), 2) as "Средняя ЗП по вакансиям"
 from employers e
 join vacancies v on e.employer_id = v.employer_id 
