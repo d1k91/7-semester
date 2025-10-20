@@ -103,7 +103,7 @@ def main():
             shared_key = Diffie_Hellman(p, g, x_a, x_b)
             print(f"Общий секретный ключ: {shared_key}")
             
-            input_file = input("Введите путь к зашифрованному файлу: ")
+            input_file = key_file_path[:-4]
             output_file = input("Введите путь для дешифрованного файла: ")
             
             try:
