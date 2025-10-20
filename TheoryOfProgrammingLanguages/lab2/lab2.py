@@ -64,17 +64,17 @@ class Automaton:
                     dka_transitions[(subset_key, symbol)] = next_states_key
                     print(f"{subset} x {symbol} -> {next_states}")
 
-        dfa_start = tuple(sorted({self.start_state}))
-        dfa_final = set()
+        dka_start = tuple(sorted({self.start_state}))
+        dka_final = set()
         
         for subset in all_subsets:
             if any(state in self.end_states for state in subset):
-                dfa_final.add(tuple(sorted(subset)))
+                dka_final.add(tuple(sorted(subset)))
         
-        reachable_states = self._find_reachable_states(dfa_start, dka_transitions)
+        reachable_states = self._find_reachable_states(dka_start, dka_transitions)
         
         print(f"Достижимые состояния: {reachable_states}")
-        print(f"Конечные состояния ДКА: {dfa_final & reachable_states}")
+        print(f"Конечные состояния ДКА: {dka_final & reachable_states}")
 
         state_mapping = {}
         new_states = set()
@@ -88,7 +88,7 @@ class Automaton:
             state_mapping[state_tuple] = state_name
             new_states.add(state_name)
             
-            if state_tuple in dfa_final:
+            if state_tuple in dka_final:
                 new_final_states.add(state_name)
         
         for (state_tuple, symbol), next_state_tuple in dka_transitions.items():
@@ -97,16 +97,16 @@ class Automaton:
                 to_state = state_mapping[next_state_tuple]
                 new_transitions[(from_state, symbol)] = {to_state}
         
-        new_start_state = state_mapping[dfa_start]
+        new_start_state = state_mapping[dka_start]
         
         return Automaton(new_states, self.alphabet, new_start_state, new_final_states, new_transitions)
         
     def minimize(self) -> 'Automaton':
         if not self.is_Deterministic():
-            raise ValueError("Minimization can only be applied to a deterministic automaton.")
+            dka = self.to_Deterministic()
+            return dka.minimize()
 
         final_states = set(self.end_states)
-        non_final_states = self.Q - final_states
         partition = [{s for s in self.Q if s in final_states}, {s for s in self.Q if s not in final_states}]
         partition = [p for p in partition if p]
 
