@@ -7,7 +7,7 @@ def Diffie_Hellman(p, g, x_a, x_b):
     z_ab = modular_exponentiation(y_b, x_a, p)
     z_ba = modular_exponentiation(y_a, x_b, p)
 
-    print(f'Zab = {z_ab}, Zba = {z_ba}')
+    # print(f'Zab = {z_ab}, Zba = {z_ba}')
     return z_ab
 
 def generate_dh_parameters():
