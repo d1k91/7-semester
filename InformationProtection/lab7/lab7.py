@@ -1,38 +1,76 @@
 from primeFerma import *
 from Diffie_Hellman import *
+import random
 
-def vernam(data, key):
+def vernam(data, p, g, mode='encrypt', keys_used=None):
     result = bytearray()
-    key_bytes = key.to_bytes((key.bit_length() + 7) // 8, 'big')
     
-    for i, byte in enumerate(data):
-        key_byte = key_bytes[i % len(key_bytes)]
-        result.append(byte ^ key_byte)
-    
-    return bytes(result)
+    if mode == 'encrypt':
+        new_keys_used = []
+        for i in range(len(data)):
+            x_a = random.randint(1, p - 1)
+            x_b = random.randint(1, p - 1)
+            new_keys_used.append((x_a, x_b))
+            
+            block_key = Diffie_Hellman(p, g, x_a, x_b)
+            key_byte = block_key & 0xFF
+            result.append(data[i] ^ key_byte)
+        
+        return bytes(result), new_keys_used
+    else:
+        for i in range(len(data)):
+            x_a, x_b = keys_used[i]
+            block_key = Diffie_Hellman(p, g, x_a, x_b)
+            key_byte = block_key & 0xFF
+            result.append(data[i] ^ key_byte)
+        
+        return bytes(result), None
 
-def vernam_encrypt_file(input_file, output_file, key):
+def vernam_encrypt_file(input_file, output_file, p, g):
     with open(input_file, "rb") as f:
         data = f.read()
     
-    encrypted = vernam(data, key)
+    encrypted, keys_used = vernam(data, p, g, 'encrypt')
     
     with open(output_file, "wb") as f:
         f.write(encrypted)
+    
+    return keys_used
 
-def vernam_decrypt_file(input_file, output_file, key):
+def vernam_decrypt_file(input_file, output_file, p, g, keys_used):
     with open(input_file, "rb") as f:
         encrypted_data = f.read()
     
-    decrypted = vernam(encrypted_data, key)
+    decrypted, _ = vernam(encrypted_data, p, g, 'decrypt', keys_used)
     
     with open(output_file, "wb") as f:
         f.write(decrypted)
+
+def save_keys(keys_used, key_file_path, p, g):
+    with open(key_file_path, "w") as f:
+        f.write(f"{p}\n{g}\n")
+        f.write(f"{len(keys_used)}\n")
+        for x_a, x_b in keys_used:
+            f.write(f"{x_a} {x_b}\n")
+
+def load_keys(key_file_path):
+    with open(key_file_path, "r") as f:
+        p = int(f.readline().strip())
+        g = int(f.readline().strip())
+        count = int(f.readline().strip())
+        keys_used = []
+        for _ in range(count):
+            line = f.readline().strip()
+            x_a, x_b = map(int, line.split())
+            keys_used.append((x_a, x_b))
+    
+    return p, g, keys_used
 
 def main(): 
     while True:
         print("\n1. Шифрование файла")
         print("2. Дешифрование файла")
+        print("3. Выход")
         
         choice = input("Выберите действие: ")
         
@@ -48,30 +86,22 @@ def main():
                 while modular_exponentiation(g, q, p) == 1:
                     g = int(input("g^q mod p = 1!\nВведите другое g: "))
                 
-                x_a = int(input("Введите Xa: "))
-                x_b = int(input("Введите Xb: "))
-                
             else:
                 print("Генерация параметров Диффи-Хеллмана...")
                 p, g, x_a, x_b = generate_dh_parameters()
                 print(f"p = {p}")
                 print(f"g = {g}")
-                print(f"x_a = {x_a}")
-                print(f"x_b = {x_b}")
-            
-            shared_key = Diffie_Hellman(p, g, x_a, x_b)
-            print(f"Общий секретный ключ: {shared_key}")
             
             input_file = input("Введите путь к файлу для шифрования: ")
             output_file = input("Введите путь для зашифрованного файла: ")
             
             try:
-                vernam_encrypt_file(input_file, output_file, shared_key)
+                keys_used = vernam_encrypt_file(input_file, output_file, p, g)
                 print("Файл успешно зашифрован!")
                 
-                with open(output_file + ".key", "w") as key_file:
-                    key_file.write(f"{p}\n{g}\n{x_a}\n{x_b}")
-                print(f"Параметры ключа сохранены в {output_file}.key")
+                save_keys(keys_used, output_file + ".key", p, g)
+                print(f"Все параметры и ключи сохранены в {output_file}.key")
+                print(f"Размер файла ключей: {len(keys_used)} пар ключей")
                 
             except Exception as e:
                 print(f"Ошибка при шифровании: {e}")
@@ -82,13 +112,9 @@ def main():
             if decrypt_method == "1":
                 key_file_path = input("Введите путь к файлу с параметрами ключа: ")
                 try:
-                    with open(key_file_path, "r") as key_file:
-                        p = int(key_file.readline().strip())
-                        g = int(key_file.readline().strip())
-                        x_a = int(key_file.readline().strip())
-                        x_b = int(key_file.readline().strip())
-                    
-                    print("Параметры ключа загружены")
+                    p, g, keys_used = load_keys(key_file_path)
+                    print(f"Параметры загружены: p={p}, g={g}")
+                    print(f"Загружено {len(keys_used)} пар ключей")
                     
                 except Exception as e:
                     print(f"Ошибка при загрузке параметров ключа: {e}")
@@ -97,17 +123,25 @@ def main():
             else:
                 p = int(input("Введите p: "))
                 g = int(input("Введите g: "))
-                x_a = int(input("Введите Xa: "))
-                x_b = int(input("Введите Xb: "))
+                keys_file_path = input("Введите путь к файлу с ключами: ")
+                try:
+                    with open(keys_file_path, "r") as f:
+                        count = int(f.readline().strip())
+                        keys_used = []
+                        for _ in range(count):
+                            line = f.readline().strip()
+                            x_a, x_b = map(int, line.split())
+                            keys_used.append((x_a, x_b))
+                    print(f"Загружено {len(keys_used)} пар ключей")
+                except Exception as e:
+                    print(f"Ошибка при загрузке ключей: {e}")
+                    continue
             
-            shared_key = Diffie_Hellman(p, g, x_a, x_b)
-            print(f"Общий секретный ключ: {shared_key}")
-            
-            input_file = input("Введите путь к зашифрованному файлу: ")
+            input_file = key_file_path[:-4]
             output_file = input("Введите путь для дешифрованного файла: ")
             
             try:
-                vernam_decrypt_file(input_file, output_file, shared_key)
+                vernam_decrypt_file(input_file, output_file, p, g, keys_used)
                 print("Файл успешно дешифрован!")
             except Exception as e:
                 print(f"Ошибка при дешифровании: {e}")
