@@ -41,4 +41,8 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
     implementation(libs.androidx.room.runtime)
     annotationProcessor(libs.androidx.room.compiler)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.gson)
+    implementation(libs.retrofit.converter.simplexml)
 }

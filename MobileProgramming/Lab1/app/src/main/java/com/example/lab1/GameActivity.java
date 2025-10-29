@@ -29,10 +29,22 @@ import com.example.lab1.data.ScoreEntity;
 import com.example.lab1.data.UserEntity;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 
+import com.example.lab1.data.GoldApiService;
+import com.example.lab1.data.MetalRates;
+import com.example.lab1.data.Record;
+import com.example.lab1.data.RetrofitClient;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class GameActivity extends AppCompatActivity implements SensorEventListener {
+    private boolean gameEnded = false;
+
     RelativeLayout gameLayout;
     TextView tvScore, tvTimeLeft;
     Button btnBack, btnSettings, btnAuthors, btnRules;
@@ -60,6 +72,14 @@ public class GameActivity extends AppCompatActivity implements SensorEventListen
     private final ArrayList<Animator> cockroachAnimators = new ArrayList<>();
     private static final long SLIDE_DURATION = 4000;
 
+    private ArrayList<ImageView> goldCockroaches = new ArrayList<>();
+    private double currentGoldPrice = 7000.0;
+    private final Handler goldHandler = new Handler();
+    private static final long GOLD_SPAWN_INTERVAL = 20000;
+    private static final double GOLD_POINTS_MULTIPLIER = 0.1;
+    private static final String GOLD_PREFS = "gold_prefs";
+    private static final String KEY_GOLD_RATE = "gold_rate";
+
     private Runnable timerRunnable = new Runnable() {
         @Override
         public void run() {
@@ -68,9 +88,13 @@ public class GameActivity extends AppCompatActivity implements SensorEventListen
             timeLeft--;
             tvTimeLeft.setText("Время: " + timeLeft + " сек");
             if (timeLeft <= 0) {
-                endGame();
+                if (!gameEnded) {
+                    isGameRunning = false;
+                    endGame();
+                }
                 return;
             }
+
             handler.postDelayed(this, 1000);
         }
     };
@@ -138,6 +162,18 @@ public class GameActivity extends AppCompatActivity implements SensorEventListen
         }
     };
 
+    private final Runnable goldSpawnRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (!isGameRunning || goldCockroaches.size() >= 1) {
+                goldHandler.postDelayed(this, GOLD_SPAWN_INTERVAL);
+                return;
+            }
+            spawnGoldCockroach();
+            goldHandler.postDelayed(this, GOLD_SPAWN_INTERVAL);
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -187,7 +223,7 @@ public class GameActivity extends AppCompatActivity implements SensorEventListen
 
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        slideSound = MediaPlayer.create(this, R.raw.slide);
+        slideSound = MediaPlayer.create(this, R.raw.cartoonmix);
 
         ViewTreeObserver vto = gameLayout.getViewTreeObserver();
         vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -196,19 +232,76 @@ public class GameActivity extends AppCompatActivity implements SensorEventListen
                 layoutWidth = gameLayout.getWidth();
                 layoutHeight = gameLayout.getHeight();
                 gameLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                loadGoldPriceFromCache();
+                fetchGoldPriceAndStartSpawn();
                 startGame();
             }
         });
     }
 
+    private void loadGoldPriceFromCache() {
+        SharedPreferences prefs = getSharedPreferences(GOLD_PREFS, MODE_PRIVATE);
+        String cached = prefs.getString(KEY_GOLD_RATE, null);
+        if (cached != null) {
+            try {
+                currentGoldPrice = Double.parseDouble(cached);
+            } catch (Exception e) {
+                currentGoldPrice = 7000.0;
+            }
+        }
+    }
+
+    private void fetchGoldPriceAndStartSpawn() {
+        Calendar cal = Calendar.getInstance();
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+        String today = sdf.format(cal.getTime());
+
+        GoldApiService api = RetrofitClient.getApi();
+        api.getMetalRates(today, today).enqueue(new Callback<MetalRates>() {
+            @Override
+            public void onResponse(Call<MetalRates> call, Response<MetalRates> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().records != null) {
+                    for (Record r : response.body().records) {
+                        if (r.code == 1 && r.buy != null) {
+                            try {
+                                currentGoldPrice = Double.parseDouble(r.buy.replace(",", "."));
+                                getSharedPreferences(GOLD_PREFS, MODE_PRIVATE)
+                                        .edit()
+                                        .putString(KEY_GOLD_RATE, String.valueOf(currentGoldPrice))
+                                        .apply();
+                                break;
+                            } catch (Exception ignored) {}
+                        }
+                    }
+                }
+                startGoldCockroachSpawn();
+            }
+
+            @Override
+            public void onFailure(Call<MetalRates> call, Throwable t) {
+                startGoldCockroachSpawn();
+            }
+        });
+    }
+
+    private void startGoldCockroachSpawn() {
+        if (isGameRunning) {
+            goldHandler.postDelayed(goldSpawnRunnable, GOLD_SPAWN_INTERVAL);
+        }
+    }
+
     private void startGame() {
+        clearAllViews();
         isGameRunning = true;
+        gameEnded = false;
         score = 0;
         timeLeft = roundDuration;
+
         tvScore.setText("Очки: 0");
         tvTimeLeft.setText("Время: " + timeLeft + " сек");
 
         handler.removeCallbacksAndMessages(null);
+        goldHandler.removeCallbacksAndMessages(null);
 
         handler.postDelayed(timerRunnable, 1000);
         handler.post(spawnCockroachRunnable);
@@ -219,47 +312,62 @@ public class GameActivity extends AppCompatActivity implements SensorEventListen
         }
 
         if (accelerometer != null) {
+            try {
+                sensorManager.unregisterListener(this);
+            } catch (Exception e) {}
             sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
         }
+
+        startGoldCockroachSpawn();
     }
 
     private void endGame() {
+        if (gameEnded) return;
+        gameEnded = true;
+
         isGameRunning = false;
-
         isSliding = false;
-        if (slideSound != null && slideSound.isPlaying()) {
-            slideSound.pause();
-            slideSound.seekTo(0);
-        }
-        sensorManager.unregisterListener(this);
-
         handler.removeCallbacksAndMessages(null);
-        clearAllViews();
+        goldHandler.removeCallbacksAndMessages(null);
 
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        int userId = prefs.getInt("current_user_id", -1);
-        if (userId != -1) {
-            AppDatabase db = AppDatabase.getDatabase(this);
-            ScoreEntity scoreEntity = new ScoreEntity(userId, score, speed, maxCockroaches, bonusInterval, roundDuration, System.currentTimeMillis());
-            db.appDao().insertScore(scoreEntity);
-        } else {
-            Toast.makeText(this, "Пользователь не выбран, рекорд не сохранён", Toast.LENGTH_SHORT).show();
+        List<Animator> animatorsToStop = new ArrayList<>(cockroachAnimators);
+        for (Animator anim : animatorsToStop) {
+            if (anim != null && anim.isRunning()) {
+                anim.cancel();
+            }
         }
+        cockroachAnimators.clear();
 
-        String message = "Ваши очки: " + score + "\n\n" +
-                "Параметры игры:\n" +
-                "Скорость: " + speed + "\n" +
-                "Макс. тараканов: " + maxCockroaches + "\n" +
-                "Интервал бонусов: " + bonusInterval + " сек\n" +
-                "Длительность раунда: " + roundDuration + " сек";
+        runOnUiThread(() -> {
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+            int userId = prefs.getInt("current_user_id", -1);
+            if (userId != -1) {
+                AppDatabase db = AppDatabase.getDatabase(this);
+                ScoreEntity scoreEntity = new ScoreEntity(
+                        userId, score, speed, maxCockroaches, bonusInterval, roundDuration,
+                        System.currentTimeMillis());
+                db.appDao().insertScore(scoreEntity);
+            }
 
-        new AlertDialog.Builder(this)
-                .setTitle("Игра окончена!")
-                .setMessage(message)
-                .setPositiveButton("Сыграть ещё", (dialog, which) -> startGame())
-                .setNegativeButton("Меню", (dialog, which) -> finish())
-                .setCancelable(false)
-                .show();
+            String message = "Ваши очки: " + score + "\n\n" +
+                    "Параметры игры:\n" +
+                    "Скорость: " + speed + "\n" +
+                    "Макс. тараканов: " + maxCockroaches + "\n" +
+                    "Интервал бонусов: " + bonusInterval + " сек\n" +
+                    "Длительность раунда: " + roundDuration + " сек";
+
+            new AlertDialog.Builder(GameActivity.this)
+                    .setTitle("Игра окончена!")
+                    .setMessage(message)
+                    .setPositiveButton("Сыграть ещё", (dialog, which) -> {
+                        startGame();
+                    })
+                    .setNegativeButton("Меню", (dialog, which) -> {
+                        finish();
+                    })
+                    .setCancelable(false)
+                    .show();
+        });
     }
 
     private void addCockroach() {
@@ -312,6 +420,27 @@ public class GameActivity extends AppCompatActivity implements SensorEventListen
         handler.postDelayed(() -> removeView(bonus, bonuses), 5000);
     }
 
+    private void spawnGoldCockroach() {
+        if (!isGameRunning || layoutWidth <= 0 || layoutHeight <= 0) return;
+
+        ImageView goldView = createBugView(R.drawable.gold_cockroach);
+        goldView.setOnClickListener(v -> {
+            int points = (int) (currentGoldPrice * GOLD_POINTS_MULTIPLIER);
+            updateScore(points);
+            removeView(goldView, goldCockroaches);
+
+            ObjectAnimator fade = ObjectAnimator.ofFloat(goldView, "alpha", 1f, 0f);
+            fade.setDuration(300);
+            fade.start();
+
+            Toast.makeText(this, "Золотой! +" + points + " очков", Toast.LENGTH_SHORT).show();
+        });
+
+        goldCockroaches.add(goldView);
+        gameLayout.addView(goldView);
+        animateMove(goldView, true);
+    }
+
     private ImageView createBugView(int resId) {
         ImageView iv = new ImageView(this);
         iv.setImageResource(resId);
@@ -332,6 +461,12 @@ public class GameActivity extends AppCompatActivity implements SensorEventListen
                 }
             }
             for (ImageView existing : bonuses) {
+                if (Math.abs(existing.getX() - x) < 150 && Math.abs(existing.getY() - y) < 150) {
+                    validPosition = false;
+                    break;
+                }
+            }
+            for (ImageView existing : goldCockroaches) {
                 if (Math.abs(existing.getX() - x) < 150 && Math.abs(existing.getY() - y) < 150) {
                     validPosition = false;
                     break;
@@ -396,19 +531,27 @@ public class GameActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void clearAllViews() {
-        for (ImageView bug : cockroaches) {
-            bug.clearAnimation();
-        }
-        for (ImageView bonus : bonuses) {
-            bonus.clearAnimation();
-        }
-        gameLayout.removeAllViews();
-        cockroaches.clear();
-        bonuses.clear();
         for (Animator anim : cockroachAnimators) {
-            anim.cancel();
+            if (anim != null && anim.isRunning()) {
+                anim.cancel();
+            }
         }
         cockroachAnimators.clear();
+
+        handler.removeCallbacksAndMessages(null);
+        goldHandler.removeCallbacksAndMessages(null);
+
+        gameLayout.removeAllViews();
+
+        cockroaches.clear();
+        bonuses.clear();
+        goldCockroaches.clear();
+
+        isSliding = false;
+        if (slideSound != null && slideSound.isPlaying()) {
+            slideSound.pause();
+            slideSound.seekTo(0);
+        }
     }
 
     @Override
@@ -427,8 +570,12 @@ public class GameActivity extends AppCompatActivity implements SensorEventListen
     protected void onDestroy() {
         super.onDestroy();
         handler.removeCallbacksAndMessages(null);
-
-        sensorManager.unregisterListener(this);
+        goldHandler.removeCallbacksAndMessages(null);
+        try {
+            sensorManager.unregisterListener(this);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         if (slideSound != null) {
             slideSound.release();
             slideSound = null;
