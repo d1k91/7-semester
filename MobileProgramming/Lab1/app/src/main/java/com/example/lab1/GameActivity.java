@@ -5,6 +5,11 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
@@ -24,9 +29,10 @@ import com.example.lab1.data.ScoreEntity;
 import com.example.lab1.data.UserEntity;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
-public class GameActivity extends AppCompatActivity {
+public class GameActivity extends AppCompatActivity implements SensorEventListener {
     RelativeLayout gameLayout;
     TextView tvScore, tvTimeLeft;
     Button btnBack, btnSettings, btnAuthors, btnRules;
@@ -45,6 +51,14 @@ public class GameActivity extends AppCompatActivity {
 
     private boolean isGameRunning = false;
     private float layoutWidth, layoutHeight;
+
+    private SensorManager sensorManager;
+    private Sensor accelerometer;
+    private MediaPlayer slideSound;
+    private boolean isSliding = false;
+    private float tiltX = 0, tiltY = 0;
+    private final ArrayList<Animator> cockroachAnimators = new ArrayList<>();
+    private static final long SLIDE_DURATION = 4000;
 
     private Runnable timerRunnable = new Runnable() {
         @Override
@@ -79,6 +93,48 @@ public class GameActivity extends AppCompatActivity {
             if (!isGameRunning) return;
             addBonus();
             handler.postDelayed(this, bonusInterval * 1000);
+        }
+    };
+
+    private Runnable slideRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (!isGameRunning || !isSliding) return;
+
+            for (ImageView cockroach : cockroaches) {
+                float oldX = cockroach.getX();
+                float oldY = cockroach.getY();
+
+                float newX = oldX + tiltX * 35;
+                float newY = oldY + tiltY * 35;
+
+                newX = Math.max(0, Math.min(newX, layoutWidth - cockroach.getWidth()));
+                newY = Math.max(0, Math.min(newY, layoutHeight - cockroach.getHeight()));
+
+                cockroach.setX(newX);
+                cockroach.setY(newY);
+
+                boolean collision = false;
+                for (ImageView other : cockroaches) {
+                    if (other == cockroach) continue;
+
+                    float dx = cockroach.getX() - other.getX();
+                    float dy = cockroach.getY() - other.getY();
+                    float distance = (float) Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < 100) {
+                        collision = true;
+                        break;
+                    }
+                }
+
+                if (collision) {
+                    cockroach.setX(oldX);
+                    cockroach.setY(oldY);
+                }
+            }
+
+            handler.postDelayed(this, 16);
         }
     };
 
@@ -129,6 +185,10 @@ public class GameActivity extends AppCompatActivity {
             return true;
         });
 
+        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        slideSound = MediaPlayer.create(this, R.raw.slide);
+
         ViewTreeObserver vto = gameLayout.getViewTreeObserver();
         vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -157,10 +217,22 @@ public class GameActivity extends AppCompatActivity {
         for (int i = 0; i < Math.min(3, maxCockroaches); i++) {
             addCockroach();
         }
+
+        if (accelerometer != null) {
+            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
+        }
     }
 
     private void endGame() {
         isGameRunning = false;
+
+        isSliding = false;
+        if (slideSound != null && slideSound.isPlaying()) {
+            slideSound.pause();
+            slideSound.seekTo(0);
+        }
+        sensorManager.unregisterListener(this);
+
         handler.removeCallbacksAndMessages(null);
         clearAllViews();
 
@@ -206,6 +278,32 @@ public class GameActivity extends AppCompatActivity {
         bonus.setOnClickListener(v -> {
             updateScore(50);
             removeView(bonus, bonuses);
+
+            if (!isSliding) {
+                isSliding = true;
+                if (slideSound != null) {
+                    slideSound.start();
+                }
+
+                List<Animator> animatorsToCancel = new ArrayList<>(cockroachAnimators);
+                for (Animator anim : animatorsToCancel) {
+                    anim.cancel();
+                }
+                cockroachAnimators.clear();
+
+                handler.post(slideRunnable);
+
+                handler.postDelayed(() -> {
+                    isSliding = false;
+                    if (slideSound != null && slideSound.isPlaying()) {
+                        slideSound.pause();
+                        slideSound.seekTo(0);
+                    }
+                    for (ImageView cockroach : cockroaches) {
+                        animateMove(cockroach, true);
+                    }
+                }, SLIDE_DURATION);
+            }
         });
         bonuses.add(bonus);
         gameLayout.addView(bonus);
@@ -247,7 +345,7 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private void animateMove(ImageView view, boolean isCockroach) {
-        if (!isGameRunning) return;
+        if (!isGameRunning || isSliding) return;
 
         float targetX = random.nextFloat() * (layoutWidth - view.getWidth());
         float targetY = random.nextFloat() * (layoutHeight - view.getHeight());
@@ -256,10 +354,7 @@ public class GameActivity extends AppCompatActivity {
         targetY = Math.max(0, Math.min(targetY, layoutHeight - view.getHeight()));
 
         long duration = (long) (8000 - (speed * 400));
-
-        if (!isCockroach) {
-            duration *= 1.5;
-        }
+        if (!isCockroach) duration *= 1.5;
 
         ObjectAnimator animX = ObjectAnimator.ofFloat(view, "x", targetX);
         ObjectAnimator animY = ObjectAnimator.ofFloat(view, "y", targetY);
@@ -268,13 +363,21 @@ public class GameActivity extends AppCompatActivity {
         animX.setDuration(duration);
         animY.setDuration(duration);
 
+        if (isCockroach) {
+            cockroachAnimators.add(animX);
+            cockroachAnimators.add(animY);
+        }
+
         animX.start();
         animY.start();
 
         animX.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
-                animateMove(view, isCockroach);
+                cockroachAnimators.remove(animation);
+                if (isGameRunning && !isSliding) {
+                    animateMove(view, isCockroach);
+                }
             }
         });
     }
@@ -302,11 +405,33 @@ public class GameActivity extends AppCompatActivity {
         gameLayout.removeAllViews();
         cockroaches.clear();
         bonuses.clear();
+        for (Animator anim : cockroachAnimators) {
+            anim.cancel();
+        }
+        cockroachAnimators.clear();
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER && isSliding) {
+            tiltX = -event.values[0] / 10.0f;
+            tiltY = event.values[1] / 10.0f;
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         handler.removeCallbacksAndMessages(null);
+
+        sensorManager.unregisterListener(this);
+        if (slideSound != null) {
+            slideSound.release();
+            slideSound = null;
+        }
     }
 }
