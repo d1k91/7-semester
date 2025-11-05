@@ -41,12 +41,12 @@ create table interviews (
 );
 
 insert into job_seekers(name, birth_date, email, phone) values 
-	('Глинский Вадим', '2004-12-19', 'v.glinskiy@icloud.com', '89134848661'),
-	('Огарков Кирилл', '2004-11-17', 'klimpopo@icloud.com', '+79529020904'),
-	('Баженов Эдуард', '2004-08-22', 'sinful@gmail.com', '81234567890'),
-	('Смолевская Елизавета', '2004-11-25', 'lizasml@gmail.com', '80987654321'),
-	('Соловьева Ирина', '2004-05-01', 'iirisha_va@gmail.com', '+71234567890'),
-	('Шелегина Ольга', '2002-06-21', 'shelegina@gmail.com', '+709987654321');
+	('Иван Иванов', '2004-01-01', 'i.ivanov@icloud.com', '89131231231'),
+	('Петр Петров', '2004-02-02', 'p.petrov@icloud.com', '+79523213213'),
+	('Денис Денисов', '2004-03-03', 'd.denisov@gmail.com', '81234567890'),
+	('Александ Александров', '2004-04-04', 'a.alexadrov@gmail.com', '80987654321'),
+	('Семен Семенов', '2004-05-05', 's.semenov@gmail.com', '+71234567890'),
+	('Дмитрий Дмитриев', '2002-06-06', 'd.dmitriev@gmail.com', '+709987654321');
 
 insert into employers(company_name, address, contact_person, phone, email) values
 	('ООО "ТехноПро"','г. Москва, ул. Ленина, д. 1', 'Алексей Волков', '+74951234567', 'hr@technopro.ru'),
